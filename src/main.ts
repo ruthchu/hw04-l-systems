@@ -64,7 +64,6 @@ function createGrammar(axiom: string, iter: number) {
   let grammar = new Grammar(axiom);
   grammar.createRules();
   grammarOut = grammar.expand(iter);
-  console.log(grammarOut);
 }
 
 function crawlTurtle(axiom: string) {
@@ -134,7 +133,7 @@ function updateColor(mesh: Mesh, iter: number, red: number, green : number, blue
 }
 
 function makeBase() {
-  let baseString = readTextFile("../base.obj");
+  let baseString = readTextFile("base.obj");
   baseMesh = new Mesh(baseString, vec3.fromValues(0, 10, 0));
   baseMesh.create();
   let a = new Array();
@@ -147,7 +146,7 @@ function makeBase() {
 }
 
 function makeSkull() {
-  let skullString = readTextFile("../skull.obj");
+  let skullString = readTextFile("skull.obj");
   skullMesh = new Mesh(skullString, vec3.fromValues(0, 10, 0));
   skullMesh.create();
   let a = new Array();
@@ -160,7 +159,7 @@ function makeSkull() {
 }
 
 function makeTree(iter: number) {
-  let leafString = readTextFile("../cylinder.obj");
+  let leafString = readTextFile("cylinder.obj");
   leafMesh = new Mesh(leafString, vec3.fromValues(0, 0, 0));
   createGrammar("[A]/[A]/[A]/[A]/[A]/[A]/[A]", iter);
   crawlTurtle(grammarOut);
@@ -169,7 +168,7 @@ function makeTree(iter: number) {
   updateColor(leafMesh, transforms.length, .9, 0.0, .1, 1.0);
   leafMesh.setNumInstances(transforms.length);
 
-  let fruitString = readTextFile("../teardrop.obj");
+  let fruitString = readTextFile("teardrop.obj");
   fruitMesh = new Mesh(fruitString, vec3.fromValues(0, 0, 0));
   fruitMesh.create();
   updateTransformFruit(1);
@@ -200,7 +199,7 @@ function main() {
   gui.add(controls, 'branchColor', 0, 1).step(.05).setValue(0);
   gui.add(controls, 'fruitScale', 0, 2).step(.05).setValue(2);
   gui.add(controls, 'fruitEffect', 0, 3).step(.05).setValue(3);
-  gui.add(controls, 'fullEffect', 0, 12).step(.1).setValue(10);
+  gui.add(controls, 'fullEffect', 0, 12).step(.1).setValue(12);
 
   // get canvas and webgl context
   const canvas = <HTMLCanvasElement> document.getElementById('canvas');
@@ -284,7 +283,7 @@ function main() {
       if (color < 9) {
         color = 1;
       } else if (color >= 9) {
-        color = 9 - color;
+        color = 1 - ((color - 9) * .5);
       }
       makeTree(iter);
       updateTransformFruit(scale);
