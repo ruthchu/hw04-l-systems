@@ -2,15 +2,15 @@
 
 ## Pennkey: 33615194
 
+## Link to scene
+[https://ruthchu.github.io/hw04-l-systems/](https://ruthchu.github.io/hw04-l-systems/)
+
 In honor of sp00ky season :D
 ![](fulliter.png)
 
 ![](partialiter.png)
 
 Death's Crown: This (fictional) plant sprouts from the bones of the dead, fueled by the blood and nutrients remaining in the marrow, giving the initial vines a red tinge. This blood is then funneled into fruit that grows on the vine, and as the fruit grows, it leeches the blood from the vines, turning them black. (Toggle the 'fullEffect' slider to view the progression).
-
-## Link to scene
-[https://ruthchu.github.io/hw04-l-systems/](https://ruthchu.github.io/hw04-l-systems/)
 
  Inspiration taken from creeping vines:
 
