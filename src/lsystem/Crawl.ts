@@ -7,10 +7,9 @@ export default class Crawl {
     stack : Array<Turtle>;
     drawRules : Map<string, DrawingRule>;
     transforms : Array<mat4>;
-    fruitLoc: Array<mat4>;
-    scale: number;
+    fruitLoc: Array<[quat, vec3]>;
 
-    constructor(t : Turtle, scale: number) {
+    constructor(t : Turtle) {
         vec3.copy(this.turtle.pos, t.pos);
         //vec3.copy(this.turtle.orient, t.orient);
         this.turtle.depth = t.depth;
@@ -18,7 +17,6 @@ export default class Crawl {
         this.stack = new Array();
         this.transforms = new Array();
         this.fruitLoc = new Array();
-        this.scale = scale;
     }
 
     createRules() {
@@ -31,8 +29,7 @@ export default class Crawl {
         let fruit = new DrawingRule();
         push.addRule(this.pushTurtle.bind(this), 1.0);
         pop.addRule(this.popTurtle.bind(this), 1.0);
-        ccSpinYAxis.addRule(this.turtleRotY.bind(this), 0.9);
-        ccSpinYAxis.addRule(this.turtleRotYBack.bind(this), 0.1);
+        ccSpinYAxis.addRule(this.turtleRotY.bind(this), 1.0);
         pitchUp.addRule(this.turtleRotXUpBig.bind(this), .75);
         pitchUp.addRule(this.turtleRotXUpSmall.bind(this), .25);
         pitchDown.addRule(this.turtleRotXDownBig.bind(this), .75);
@@ -45,23 +42,19 @@ export default class Crawl {
         this.drawRules.set("&", pitchDown);
         this.drawRules.set("^", pitchUp);
         this.drawRules.set("F", forward);
-        this.drawRules.set("K", fruit);
+        this.drawRules.set("G", fruit);
     }
 
     turtleRotY() {
         this.turtle.rotate(this.turtle.getForward(), 45);
     }
 
-    turtleRotYBack() {
-        this.turtle.rotate(this.turtle.getForward(), -15);
-    }
-
     turtleRotXUpSmall() {
-        this.turtle.rotate(this.turtle.getRight(), 30);
+        this.turtle.rotate(this.turtle.getRight(), 10);
     }
 
     turtleRotXUpBig() {
-        this.turtle.rotate(this.turtle.getRight(), 45);
+        this.turtle.rotate(this.turtle.getRight(), 11);
     }
 
     turtleRotXDownBig() {
@@ -69,24 +62,22 @@ export default class Crawl {
     }
 
     turtleRotXDownSmall() {
-        this.turtle.rotate(this.turtle.getRight(), -30);
+        this.turtle.rotate(this.turtle.getRight(), -44);
     }
 
     fruitPos() {
-        let m = mat4.create();
+        let q = quat.create();
+        quat.copy(q, this.turtle.getQuat());
         let v = vec3.create();
-        vec3.scale(v, vec3.fromValues(.2, .2, .2), this.scale);
-        mat4.fromRotationTranslationScale(m, this.turtle.getQuat(), this.turtle.pos, v);
-        this.fruitLoc.push(m);
+        vec3.copy(v, this.turtle.pos);
+        this.fruitLoc.push([q, v]);
     }
 
     turtleForward() {
         let m = mat4.create();
-        let v = vec3.create();
-        vec3.scale(v, vec3.fromValues(.2, .2, .2), this.scale);
-        mat4.fromRotationTranslationScale(m, this.turtle.getQuat(), this.turtle.pos, v);
+        mat4.fromRotationTranslationScale(m, this.turtle.getQuat(), this.turtle.pos, vec3.fromValues(.2, .2, .2));
         this.transforms.push(m);
-        this.turtle.moveForward(.2 * this.scale);
+        this.turtle.moveForward(.2);
     }
 
     pushTurtle() : any {

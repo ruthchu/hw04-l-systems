@@ -1,4 +1,4 @@
-import {vec3, mat4, mat3, vec4} from 'gl-matrix';
+import {vec3, mat4, mat3, vec4, quat} from 'gl-matrix';
 import * as Stats from 'stats-js';
 import * as DAT from 'dat-gui';
 import Square from './geometry/Square';
@@ -16,8 +16,10 @@ import Mesh from './geometry/Mesh';
 // This will be referred to by dat.GUI's functions that add GUI elements.
 const controls = {
   iterations: 0,
-  scale: 1,
-  branchCol: 1,
+  branchColor: 0,
+  fruitScale: 0,
+  fruitEffect: 0,
+  fullEffect: 0,
 };
 
 let leafMesh : Mesh;
@@ -31,11 +33,13 @@ let time: number = 0.0;
 let grammarOut : string;
 let turtle : Turtle = new Turtle(vec3.fromValues(0, 0, 0), mat3.fromValues(1, 0, 0, 0, 1, 0, 0, 0, 1), 0);
 let transforms : Array<mat4>;
-let fruitLoc : Array<mat4>;
+let fruitLoc : Array<[quat, vec3]>;
 
 let prev_iter = controls.iterations;
-let prev_scale = controls.scale;
-let prev_col = controls.branchCol;
+let prev_color = controls.branchColor;
+let prev_scale = controls.fruitScale;
+let prev_fruitEffect = controls.fruitEffect;
+let prev_fullEffect = controls.fullEffect;
 
 function readTextFile(file: string): string {
   var text = "";
@@ -60,14 +64,73 @@ function createGrammar(axiom: string, iter: number) {
   let grammar = new Grammar(axiom);
   grammar.createRules();
   grammarOut = grammar.expand(iter);
+  console.log(grammarOut);
 }
 
-function crawlTurtle(axiom: string, scale: number) {
-  let c = new Crawl(turtle, scale);
+function crawlTurtle(axiom: string) {
+  let c = new Crawl(turtle);
   c.createRules();
   c.crawl(axiom);
   transforms = c.getBranchTransform();
   fruitLoc = c.getFruitTransform();
+}
+
+function updateTransform(mesh: Mesh, iter: number, transArrays: Array<mat4>) {
+  let colArray1 = [];
+  let colArray2 = [];
+  let colArray3 = [];
+  let colArray4 = [];
+  for(let i = 0; i < iter; i++) {
+    for(let j = 0; j < 4; j++) {
+      colArray1.push(transArrays[i][j]);
+      colArray2.push(transArrays[i][j + 4]);
+      colArray3.push(transArrays[i][j + 8]);
+      colArray4.push(transArrays[i][j + 12]);
+    }
+  }
+  let col1: Float32Array = new Float32Array(colArray1);
+  let col2: Float32Array = new Float32Array(colArray2);
+  let col3: Float32Array = new Float32Array(colArray3);
+  let col4: Float32Array = new Float32Array(colArray4);
+  mesh.setTransformVBOs(col1, col2, col3, col4);
+}
+
+function updateTransformFruit(scale: number) {
+  let colArray1 = [];
+  let colArray2 = [];
+  let colArray3 = [];
+  let colArray4 = [];
+  for(let i = 0; i < fruitLoc.length; i++) {
+    let m = mat4.create();
+    let v = vec3.create();
+    vec3.scale(v, vec3.fromValues(0.2, 0.2, 0.2), scale);
+    mat4.fromRotationTranslationScale(m, fruitLoc[i][0], fruitLoc[i][1], v);
+    for(let j = 0; j < 4; j++) {
+      colArray1.push(m[j]);
+      colArray2.push(m[j + 4]);
+      colArray3.push(m[j + 8]);
+      colArray4.push(m[j + 12]);
+    }
+  }
+  let col1: Float32Array = new Float32Array(colArray1);
+  let col2: Float32Array = new Float32Array(colArray2);
+  let col3: Float32Array = new Float32Array(colArray3);
+  let col4: Float32Array = new Float32Array(colArray4);
+  fruitMesh.setTransformVBOs(col1, col2, col3, col4);
+}
+
+function updateColor(mesh: Mesh, iter: number, red: number, green : number, blue: number, alpha: number) {
+  let fcolorsArray = [];
+  for(let i = 0; i < iter; i++) {
+    for(let j = 0; j < 4; j++) {
+      fcolorsArray.push(red);
+      fcolorsArray.push(green);
+      fcolorsArray.push(blue);
+      fcolorsArray.push(alpha); // Alpha channel
+    }
+  }
+  let fcolors: Float32Array = new Float32Array(fcolorsArray);
+  mesh.setColorVBOs(fcolors);
 }
 
 function makeBase() {
@@ -96,45 +159,11 @@ function makeSkull() {
   skullMesh.setNumInstances(1);
 }
 
-function updateTransform(mesh: Mesh, iter: number, transArrays: Array<mat4>) {
-  let colArray1 = [];
-  let colArray2 = [];
-  let colArray3 = [];
-  let colArray4 = [];
-  for(let i = 0; i < iter; i++) {
-    for(let j = 0; j < 4; j++) {
-      colArray1.push(transArrays[i][j]);
-      colArray2.push(transArrays[i][j + 4]);
-      colArray3.push(transArrays[i][j + 8]);
-      colArray4.push(transArrays[i][j + 12]);
-    }
-  }
-  let col1: Float32Array = new Float32Array(colArray1);
-  let col2: Float32Array = new Float32Array(colArray2);
-  let col3: Float32Array = new Float32Array(colArray3);
-  let col4: Float32Array = new Float32Array(colArray4);
-  mesh.setTransformVBOs(col1, col2, col3, col4);
-}
-
-function updateColor(mesh: Mesh, iter: number, red: number, green : number, blue: number, alpha: number) {
-  let fcolorsArray = [];
-  for(let i = 0; i < iter; i++) {
-    for(let j = 0; j < 4; j++) {
-      fcolorsArray.push(red);
-      fcolorsArray.push(green);
-      fcolorsArray.push(blue);
-      fcolorsArray.push(alpha); // Alpha channel
-    }
-  }
-  let fcolors: Float32Array = new Float32Array(fcolorsArray);
-  mesh.setColorVBOs(fcolors);
-}
-
-function makeTree(iter: number, scale: number) {
+function makeTree(iter: number) {
   let leafString = readTextFile("../cylinder.obj");
   leafMesh = new Mesh(leafString, vec3.fromValues(0, 0, 0));
   createGrammar("[A]/[A]/[A]/[A]/[A]/[A]/[A]", iter);
-  crawlTurtle(grammarOut, scale);
+  crawlTurtle(grammarOut);
   leafMesh.create();
   updateTransform(leafMesh, transforms.length, transforms);
   updateColor(leafMesh, transforms.length, .9, 0.0, .1, 1.0);
@@ -143,7 +172,7 @@ function makeTree(iter: number, scale: number) {
   let fruitString = readTextFile("../teardrop.obj");
   fruitMesh = new Mesh(fruitString, vec3.fromValues(0, 0, 0));
   fruitMesh.create();
-  updateTransform(fruitMesh, fruitLoc.length, fruitLoc);
+  updateTransformFruit(1);
   updateColor(fruitMesh, fruitLoc.length, 1.0, 0.0, 0.0, 1.0);
   fruitMesh.setNumInstances(fruitLoc.length);
 }
@@ -153,7 +182,7 @@ function loadScene() {
   screenQuad.create();
   makeSkull();
   makeBase();
-  makeTree(controls.iterations, controls.scale);
+  makeTree(controls.iterations);
 }
 
 function main() {
@@ -168,8 +197,10 @@ function main() {
   // Add controls to the gui
   const gui = new DAT.GUI();
   gui.add(controls, 'iterations', 0, 9).step(1).setValue(7);
-  gui.add(controls, 'scale', 1, 2).step(.2).setValue(1);
-  gui.add(controls, 'branchCol', 0, 1).step(.1).setValue(1);
+  gui.add(controls, 'branchColor', 0, 1).step(.05).setValue(0);
+  gui.add(controls, 'fruitScale', 0, 2).step(.05).setValue(2);
+  gui.add(controls, 'fruitEffect', 0, 3).step(.05).setValue(3);
+  gui.add(controls, 'fullEffect', 0, 12).step(.1).setValue(10);
 
   // get canvas and webgl context
   const canvas = <HTMLCanvasElement> document.getElementById('canvas');
@@ -211,18 +242,54 @@ function main() {
     gl.viewport(0, 0, window.innerWidth, window.innerHeight);
 
     if (controls.iterations != prev_iter) {
-      makeTree(controls.iterations, controls.scale);
+      makeTree(controls.iterations);
       prev_iter = controls.iterations;
     }
 
-    if (controls.scale != prev_scale) {
-      makeTree(controls.iterations, controls.scale);
-      prev_scale = controls.scale;
+    if (controls.branchColor != prev_color) {
+      updateColor(leafMesh, transforms.length, 0.9 * controls.branchColor, 0.0, .1 * controls.branchColor, 1.0);
+      prev_color = controls.branchColor;
     }
 
-    if (controls.branchCol != prev_col) {
-      updateColor(leafMesh, transforms.length, 0.9 * controls.branchCol, 0.0, 0.1 * controls.branchCol, 1.0);
-      prev_col = controls.branchCol;
+    if (controls.fruitScale != prev_scale) {
+      updateTransformFruit(controls.fruitScale);
+      prev_scale = controls.fruitScale;
+    }
+
+    if (controls.fruitEffect != prev_fruitEffect) {
+      let scale = controls.fruitEffect;
+      if (scale < 1) {
+        scale = 0;
+      } else {
+        scale -= 1;
+      }
+      updateTransformFruit(scale);
+      let val = 1 - controls.fruitEffect * .5;
+      updateColor(leafMesh, transforms.length, 0.9 * val, 0.0, .1 * val, 1.0);
+      prev_fruitEffect = controls.fruitEffect;
+    }
+
+    if (controls.fullEffect != prev_fullEffect) {
+      let scale = controls.fullEffect;
+      let color = controls.fullEffect;
+      let iter = controls.fullEffect;
+      if (iter > 9) {
+        iter = 9;
+      }
+      if (scale < 10) {
+        scale = 0;
+      } else if (scale >= 10) {
+        scale -= 10;
+      }
+      if (color < 9) {
+        color = 1;
+      } else if (color >= 9) {
+        color = 9 - color;
+      }
+      makeTree(iter);
+      updateTransformFruit(scale);
+      updateColor(leafMesh, transforms.length, 0.9 * color, 0.0, .1 * color, 1.0);
+      prev_fullEffect = controls.fullEffect;
     }
     
     renderer.clear();

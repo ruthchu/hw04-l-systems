@@ -1,17 +1,12 @@
-import {vec3, mat3, quat, vec4} from 'gl-matrix';
+import {vec3, mat3, quat} from 'gl-matrix';
 class Turtle {
 	pos: vec3 = vec3.create();
-  orient: mat3 = mat3.create();
-  //rot: quat = quat.create();
-  
+  orient: mat3 = mat3.create();  
   depth: number = 0;
 
   constructor(pos: vec3, orient: mat3, depth: number) {
     vec3.copy(this.pos, pos);
     mat3.copy(this.orient, orient);
-    // quat.setAxisAngle(this.rot, vec3.fromValues(0, 1, 0), 0);
-    // // quat.fromMat3(this.rot, orient);
-    // quat.normalize(this.rot, this.rot);
     this.depth = depth;
   }
 
